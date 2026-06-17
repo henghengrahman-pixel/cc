@@ -1,283 +1,59 @@
-/* =========================
-   HELPERS
-========================= */
+const $ = selector => document.querySelector(selector);
+const $$ = selector => Array.from(document.querySelectorAll(selector));
 
-const $ = s => document.querySelector(s);
+const byId = id => document.getElementById(id);
 
-const el = html => {
-
-  const d =
-    document.createElement("div");
-
-  d.innerHTML =
-    html.trim();
-
-  return d.firstChild;
-
+const createNode = html => {
+  const wrap = document.createElement("template");
+  wrap.innerHTML = html.trim();
+  return wrap.content.firstElementChild;
 };
 
-const ymd = d =>
-  d.toISOString().slice(0,10);
-
-const fmtID = d =>
-  d.toLocaleDateString(
-    "id-ID",
-    {
-      weekday:"long",
-      day:"2-digit",
-      month:"long",
-      year:"numeric"
-    }
-  );
-
-/* =========================
-   SAFE
-========================= */
-
-function safe(id){
-
-  return document.getElementById(id);
-
-}
-
-/* =========================
-   LOGO
-========================= */
-
-const logoBtn =
-  safe("logoBtn");
-
-if(logoBtn){
-
-  logoBtn.addEventListener(
-    "click",
-    ()=>{
-
-      window.scrollTo({
-        top:0,
-        behavior:"smooth"
-      });
-
-      location.reload();
-
-    }
-  );
-
-}
-
-/* =========================
-   SLIDER
-========================= */
-
-(function initSlider(){
-
-  const track =
-    safe("track");
-
-  const slider =
-    safe("slider");
-
-  const dots =
-    safe("dots");
-
-  const nextBtn =
-    safe("next");
-
-  const prevBtn =
-    safe("prev");
-
-  if(
-    !track ||
-    !slider ||
-    !dots
-  ){
-    return;
-  }
-
-  const slides =
-    track.children.length;
-
-  if(!slides){
-    return;
-  }
-
-  let idx = 0;
-  let timer = null;
-  let startX = 0;
-  let deltaX = 0;
-
-  for(let i=0;i<slides;i++){
-
-    const dot =
-      document.createElement("div");
-
-    dot.className =
-      `dot${i===0?" active":""}`;
-
-    dot.addEventListener(
-      "click",
-      ()=>go(i,true)
-    );
-
-    dots.appendChild(dot);
-
-  }
-
-  const setDots = ()=>{
-
-    [...dots.children]
-      .forEach((d,i)=>{
-
-        d.classList.toggle(
-          "active",
-          i===idx
-        );
-
-      });
-
-  };
-
-  const go = (
-    n,
-    hold=false
-  )=>{
-
-    idx =
-      (n+slides)%slides;
-
-    track.style.transform =
-      `translateX(-${idx*100}%)`;
-
-    setDots();
-
-    if(hold){
-      reset();
-    }
-
-  };
-
-  const next =
-    ()=>go(idx+1);
-
-  const prev =
-    ()=>go(idx-1);
-
-  const reset = ()=>{
-
-    if(timer){
-      clearInterval(timer);
-    }
-
-    timer =
-      setInterval(
-        next,
-        3500
-      );
-
-  };
-
-  if(nextBtn){
-
-    nextBtn.onclick =
-      ()=>go(idx+1,true);
-
-  }
-
-  if(prevBtn){
-
-    prevBtn.onclick =
-      ()=>go(idx-1,true);
-
-  }
-
-  slider.addEventListener(
-    "mouseenter",
-    ()=>{
-
-      if(timer){
-        clearInterval(timer);
-      }
-
-    }
-  );
-
-  slider.addEventListener(
-    "mouseleave",
-    reset
-  );
-
-  slider.addEventListener(
-    "touchstart",
-    e=>{
-
-      startX =
-        e.touches[0].clientX;
-
-      deltaX = 0;
-
-      if(timer){
-        clearInterval(timer);
-      }
-
-    }
-  );
-
-  slider.addEventListener(
-    "touchmove",
-    e=>{
-
-      deltaX =
-        e.touches[0].clientX -
-        startX;
-
-    }
-  );
-
-  slider.addEventListener(
-    "touchend",
-    ()=>{
-
-      if(
-        Math.abs(deltaX) > 40
-      ){
-
-        deltaX > 0
-          ? prev()
-          : next();
-
-      }
-
-      reset();
-
-    }
-  );
-
-  reset();
-
-})();
-
-/* =========================
-   PRIORITY
-========================= */
-
-const MAJOR_LEAGUES = [
-
+const toDateKey = date => date.toISOString().slice(0, 10);
+
+const formatTanggal = date => {
+  return date.toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  });
+};
+
+const fallbackLogo = "/assets/img/default-team.png";
+
+const secureUrl = url => {
+  if (!url) return fallbackLogo;
+  return String(url).replace(/^http:\/\//i, "https://");
+};
+
+const cleanName = value => {
+  const name = String(value || "").trim();
+  return name || "-";
+};
+
+const escapeHTML = value => {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+};
+
+const mainLeagues = [
   "UEFA CHAMPIONS LEAGUE",
   "UEFA EUROPA LEAGUE",
   "UEFA EUROPA CONFERENCE LEAGUE",
-
   "ENGLAND - PREMIER LEAGUE",
   "SPAIN - LA LIGA",
   "ITALY - SERIE A",
   "GERMANY - BUNDESLIGA",
   "FRANCE - LIGUE 1",
-
   "INDONESIA - LIGA 1"
-
 ];
 
-const BIG_TEAMS = [
-
+const bigTeams = [
   "Real Madrid",
   "Barcelona",
   "Manchester City",
@@ -293,620 +69,375 @@ const BIG_TEAMS = [
   "AC Milan",
   "Juventus",
   "Napoli",
-
   "Persib",
   "Persija",
   "Persebaya",
   "Arema",
   "PSM",
   "Bali United"
-
 ];
 
-function groupPriority(
-  title=""
-){
-
-  const T =
-    title
-      .toUpperCase()
-      .trim();
-
-  const idx =
-    MAJOR_LEAGUES.findIndex(
-      x=>T.includes(x)
-    );
-
-  if(idx !== -1){
-    return idx;
-  }
-
-  return 999;
-
+function leagueRank(title = "") {
+  const name = title.toUpperCase().trim();
+  const index = mainLeagues.findIndex(league => name.includes(league));
+  return index === -1 ? 999 : index;
 }
 
-function matchPriority(
-  row={}
-){
+function matchRank(row = {}) {
+  const text = String(row.match || "").toLowerCase();
 
-  const text =
-    (
-      row.match ||
-      ""
-    ).toLowerCase();
+  let point = 0;
 
-  let score = 0;
-
-  BIG_TEAMS.forEach(team=>{
-
-    if(
-      text.includes(
-        team.toLowerCase()
-      )
-    ){
-      score += 10;
-    }
-
-  });
-
-  if(
-    text.includes("derby")
-  ){
-    score += 5;
+  for (const team of bigTeams) {
+    if (text.includes(team.toLowerCase())) point += 10;
   }
 
-  return score;
+  if (text.includes("derby")) point += 5;
 
+  return point;
 }
 
-/* =========================
-   NORMALIZE
-========================= */
-
-function normalizeLogo(url){
-
-  if(!url){
-    return "/assets/img/default-team.png";
-  }
-
-  return String(url)
-    .replace("http://","https://");
-
+function getScore(row) {
+  return row.predictedScore || row.scorePrediction || "1 - 0";
 }
 
-function normalizeName(name){
-
-  if(!name){
-    return "-";
-  }
-
-  return String(name)
-    .trim();
-
+function renderEmptyState(message = "Belum ada jadwal pertandingan untuk tanggal ini.") {
+  return createNode(`
+    <section class="panel empty-panel">
+      <div class="empty-state">
+        <strong>Data belum tersedia</strong>
+        <p>${escapeHTML(message)}</p>
+      </div>
+    </section>
+  `);
 }
 
-/* =========================
-   SCORE
-========================= */
-
-function estimateScore(r){
-
-  if(
-    r.predictedScore
-  ){
-    return r.predictedScore;
-  }
-
-  return "1 - 0";
-
-}
-
-/* =========================
-   PANEL
-========================= */
-
-function panelSkor(
-  title,
-  rows,
-  flag
-){
+function buildMatchCard(row = {}) {
+  const homeName = cleanName(row.homeName);
+  const awayName = cleanName(row.awayName);
+  const matchText = String(row.match || `${homeName} vs ${awayName}`).toLowerCase();
 
   return `
+    <article class="home-match-card" data-row="${escapeHTML(matchText)}">
+      <div class="home-left">
+        <div class="match-time">
+          ${escapeHTML(row.kickoffWib || row.kickoff || "-")}
+        </div>
+      </div>
 
-<section
-  class="panel"
-  data-title="${title}"
->
-
-  <div class="head">
-
-    ${flag ? `
-      <img
-        src="${flag}"
-        alt=""
-        loading="lazy"
-        onerror="this.style.display='none'"
-        style="
-          width:18px;
-          height:18px;
-          border-radius:50%;
-          object-fit:cover
-        "
-      />
-    ` : ""}
-
-    ${title.toUpperCase()}
-
-  </div>
-
-  <div class="home-match-grid">
-
-    ${rows.map(r=>`
-
-      <article
-        class="home-match-card"
-        data-row="${(
-          r.match || ""
-        ).toLowerCase()}"
-      >
-
-        <div class="home-left">
-
-          <div class="match-time">
-
-            ${
-              r.kickoffWib ||
-              r.kickoff ||
-              "-"
-            }
-
-          </div>
-
+      <div class="home-center">
+        <div class="home-team">
+          <img
+            src="${escapeHTML(secureUrl(row.homeLogo))}"
+            alt="${escapeHTML(homeName)}"
+            loading="lazy"
+            onerror="this.src='${fallbackLogo}'"
+          />
+          <strong>${escapeHTML(homeName)}</strong>
         </div>
 
-        <div class="home-center">
-
-          <div class="home-team">
-
-            <img
-              src="${normalizeLogo(r.homeLogo)}"
-              alt="${normalizeName(r.homeName)}"
-              loading="lazy"
-              onerror="this.src='/assets/img/default-team.png'"
-            />
-
-            <strong>
-              ${normalizeName(r.homeName)}
-            </strong>
-
-          </div>
-
-          <div class="home-vs">
-
-            <span>
-              VS
-            </span>
-
-          </div>
-
-          <div class="home-team">
-
-            <img
-              src="${normalizeLogo(r.awayLogo)}"
-              alt="${normalizeName(r.awayName)}"
-              loading="lazy"
-              onerror="this.src='/assets/img/default-team.png'"
-            />
-
-            <strong>
-              ${normalizeName(r.awayName)}
-            </strong>
-
-          </div>
-
+        <div class="home-vs">
+          <span>VS</span>
         </div>
 
-        <div class="home-right">
-
-          <div class="predict-score">
-
-            ${estimateScore(r)}
-
-          </div>
-
-          <small>
-
-            ${
-              r.prediction ||
-              r.tip ||
-              "-"
-            }
-
-          </small>
-
+        <div class="home-team">
+          <img
+            src="${escapeHTML(secureUrl(row.awayLogo))}"
+            alt="${escapeHTML(awayName)}"
+            loading="lazy"
+            onerror="this.src='${fallbackLogo}'"
+          />
+          <strong>${escapeHTML(awayName)}</strong>
         </div>
+      </div>
 
-      </article>
-
-    `).join("")}
-
-  </div>
-
-</section>
-
-`;
-
+      <div class="home-right">
+        <div class="predict-score">
+          ${escapeHTML(getScore(row))}
+        </div>
+        <small>
+          ${escapeHTML(row.prediction || row.tip || "-")}
+        </small>
+      </div>
+    </article>
+  `;
 }
 
-/* =========================
-   RENDER
-========================= */
+function buildPanel(group = {}) {
+  const title = cleanName(group.title);
+  const rows = Array.isArray(group.rows) ? [...group.rows] : [];
 
-function render(data){
+  rows.sort((a, b) => matchRank(b) - matchRank(a));
 
-  const root =
-    $("#content");
+  return createNode(`
+    <section class="panel" data-title="${escapeHTML(title)}">
+      <div class="head">
+        ${
+          group.flag
+            ? `
+              <img
+                src="${escapeHTML(secureUrl(group.flag))}"
+                alt=""
+                loading="lazy"
+                onerror="this.style.display='none'"
+                style="width:18px;height:18px;border-radius:50%;object-fit:cover"
+              />
+            `
+            : ""
+        }
+        <span>${escapeHTML(title.toUpperCase())}</span>
+      </div>
 
-  if(!root){
-    return;
-  }
+      <div class="home-match-grid">
+        ${rows.map(buildMatchCard).join("")}
+      </div>
+    </section>
+  `);
+}
+
+function render(data = {}) {
+  const root = $("#content");
+  if (!root) return;
 
   root.innerHTML = "";
 
-  const groups =
-    [...(
-      data.groups || []
-    )]
+  const groups = Array.isArray(data.groups) ? [...data.groups] : [];
 
-      .sort(
-        (a,b)=>
-          groupPriority(a.title) -
-          groupPriority(b.title)
-      );
-
-  groups.forEach(g=>{
-
-    const rows =
-      [...(
-        g.rows || []
-      )]
-
-        .sort(
-          (r1,r2)=>
-            matchPriority(r2) -
-            matchPriority(r1)
-        );
-
-    root.appendChild(
-      el(
-        panelSkor(
-          g.title,
-          rows,
-          g.flag
-        )
-      )
-    );
-
-  });
-
-  const q =
-    safe("q");
-
-  applyFilter(
-    q
-      ? q.value
-          .trim()
-          .toLowerCase()
-      : ""
-  );
-
-}
-
-/* =========================
-   FETCH
-========================= */
-
-async function fetchData(
-  dateStr
-){
-
-  const r =
-    await fetch(
-      `/api/fixtures?date=${encodeURIComponent(dateStr)}`
-    );
-
-  if(!r.ok){
-
-    throw new Error(
-      `HTTP ${r.status}`
-    );
-
-  }
-
-  return r.json();
-
-}
-
-/* =========================
-   DEMO
-========================= */
-
-function demo(dateStr){
-
-  return {
-    date:dateStr,
-    groups:[]
-  };
-
-}
-
-/* =========================
-   LOAD
-========================= */
-
-async function load(d){
-
-  const ds =
-    ymd(d);
-
-  const line =
-    safe("dateLine");
-
-  if(line){
-
-    line.textContent =
-      fmtID(d);
-
-  }
-
-  const loader =
-    $("#loader");
-
-  if(loader){
-
-    loader.classList.add(
-      "show"
-    );
-
-  }
-
-  try{
-
-    const data =
-      await fetchData(ds);
-
-    render(data);
-
-  }catch(err){
-
-    console.error(err);
-
-    render(
-      demo(ds)
-    );
-
-  }finally{
-
-    if(loader){
-
-      loader.classList.remove(
-        "show"
-      );
-
-    }
-
-  }
-
-}
-
-/* =========================
-   FILTER
-========================= */
-
-function applyFilter(q){
-
-  const panels =
-    document.querySelectorAll(
-      ".panel"
-    );
-
-  panels.forEach(p=>{
-
-    const ttl =
-      (
-        p.dataset.title ||
-        ""
-      ).toLowerCase();
-
-    let visibleAny =
-      false;
-
-    p.querySelectorAll(
-      ".home-match-card"
-    ).forEach(card=>{
-
-      const row =
-        card.getAttribute(
-          "data-row"
-        ) || "";
-
-      const show =
-        !q ||
-
-        row.includes(q) ||
-
-        ttl.includes(q);
-
-      card.style.display =
-        show
-          ? ""
-          : "none";
-
-      if(show){
-        visibleAny = true;
-      }
-
-    });
-
-    p.style.display =
-      visibleAny
-        ? ""
-        : "none";
-
-  });
-
-}
-
-const searchInput =
-  safe("q");
-
-if(searchInput){
-
-  searchInput.addEventListener(
-    "input",
-    e=>{
-
-      applyFilter(
-        e.target.value
-          .trim()
-          .toLowerCase()
-      );
-
-    }
-  );
-
-}
-
-/* =========================
-   BOOT
-========================= */
-
-const year =
-  safe("y");
-
-if(year){
-
-  year.textContent =
-    new Date().getFullYear();
-
-}
-
-load(new Date());
-
-/* =========================
-   QUICK MENU
-========================= */
-
-(function(){
-
-  const fab =
-    safe("mcFab");
-
-  const sheet =
-    safe("mcSheet");
-
-  const closeBtn =
-    safe("mcClose");
-
-  if(
-    !fab ||
-    !sheet ||
-    !closeBtn
-  ){
+  if (!groups.length) {
+    root.appendChild(renderEmptyState());
     return;
   }
 
-  const open = ()=>{
+  groups
+    .sort((a, b) => leagueRank(a.title) - leagueRank(b.title))
+    .forEach(group => root.appendChild(buildPanel(group)));
 
-    sheet.classList.add(
-      "show"
-    );
+  const input = byId("q");
+  applyFilter(input ? input.value : "");
+}
 
-    fab.setAttribute(
-      "aria-expanded",
-      "true"
-    );
-
-    sheet.setAttribute(
-      "aria-hidden",
-      "false"
-    );
-
-  };
-
-  const close = ()=>{
-
-    sheet.classList.remove(
-      "show"
-    );
-
-    fab.setAttribute(
-      "aria-expanded",
-      "false"
-    );
-
-    sheet.setAttribute(
-      "aria-hidden",
-      "true"
-    );
-
-  };
-
-  const toggle = ()=>{
-
-    sheet.classList.contains(
-      "show"
-    )
-      ? close()
-      : open();
-
-  };
-
-  fab.addEventListener(
-    "click",
-    toggle
-  );
-
-  closeBtn.addEventListener(
-    "click",
-    close
-  );
-
-  document.addEventListener(
-    "keydown",
-    e=>{
-
-      if(
-        e.key === "Escape"
-      ){
-        close();
-      }
-
+async function fetchFixtures(dateKey) {
+  const response = await fetch(`/api/fixtures?date=${encodeURIComponent(dateKey)}`, {
+    headers: {
+      Accept: "application/json"
     }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gagal mengambil data: HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+function fallbackData(dateKey) {
+  return {
+    date: dateKey,
+    groups: []
+  };
+}
+
+async function loadFixtures(date = new Date()) {
+  const dateKey = toDateKey(date);
+  const dateLine = byId("dateLine");
+  const loader = byId("loader");
+
+  if (dateLine) {
+    dateLine.textContent = formatTanggal(date);
+  }
+
+  loader?.classList.add("show");
+
+  try {
+    const data = await fetchFixtures(dateKey);
+    render(data);
+  } catch (error) {
+    console.error(error);
+    render(fallbackData(dateKey));
+  } finally {
+    loader?.classList.remove("show");
+  }
+}
+
+function applyFilter(value = "") {
+  const keyword = String(value).trim().toLowerCase();
+
+  $$(".panel").forEach(panel => {
+    const title = String(panel.dataset.title || "").toLowerCase();
+    let hasVisibleMatch = false;
+
+    panel.querySelectorAll(".home-match-card").forEach(card => {
+      const row = String(card.dataset.row || "").toLowerCase();
+      const visible = !keyword || title.includes(keyword) || row.includes(keyword);
+
+      card.hidden = !visible;
+
+      if (visible) hasVisibleMatch = true;
+    });
+
+    panel.hidden = !hasVisibleMatch;
+  });
+}
+
+function initLogoReload() {
+  const logoBtn = byId("logoBtn");
+  if (!logoBtn) return;
+
+  logoBtn.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 250);
+  });
+}
+
+function initSlider() {
+  const track = byId("track");
+  const slider = byId("slider");
+  const dots = byId("dots");
+  const nextBtn = byId("next");
+  const prevBtn = byId("prev");
+
+  if (!track || !slider || !dots) return;
+
+  const total = track.children.length;
+  if (!total) return;
+
+  let index = 0;
+  let timer = null;
+  let startX = 0;
+  let moveX = 0;
+
+  const updateDots = () => {
+    Array.from(dots.children).forEach((dot, i) => {
+      dot.classList.toggle("active", i === index);
+    });
+  };
+
+  const goTo = (nextIndex, manual = false) => {
+    index = (nextIndex + total) % total;
+    track.style.transform = `translate3d(-${index * 100}%,0,0)`;
+    updateDots();
+
+    if (manual) startAuto();
+  };
+
+  const next = () => goTo(index + 1);
+  const prev = () => goTo(index - 1);
+
+  const stopAuto = () => {
+    if (timer) clearInterval(timer);
+    timer = null;
+  };
+
+  const startAuto = () => {
+    stopAuto();
+    timer = setInterval(next, 3500);
+  };
+
+  for (let i = 0; i < total; i++) {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = `dot${i === 0 ? " active" : ""}`;
+    dot.setAttribute("aria-label", `Slide ${i + 1}`);
+    dot.addEventListener("click", () => goTo(i, true));
+    dots.appendChild(dot);
+  }
+
+  nextBtn?.addEventListener("click", () => goTo(index + 1, true));
+  prevBtn?.addEventListener("click", () => goTo(index - 1, true));
+
+  slider.addEventListener("mouseenter", stopAuto);
+  slider.addEventListener("mouseleave", startAuto);
+
+  slider.addEventListener(
+    "touchstart",
+    event => {
+      startX = event.touches[0].clientX;
+      moveX = 0;
+      stopAuto();
+    },
+    { passive: true }
   );
 
-  document.addEventListener(
-    "click",
-    e=>{
+  slider.addEventListener(
+    "touchmove",
+    event => {
+      moveX = event.touches[0].clientX - startX;
+    },
+    { passive: true }
+  );
 
-      if(
-        !sheet.classList.contains(
-          "show"
-        )
-      ){
-        return;
-      }
-
-      const within =
-        sheet.contains(e.target) ||
-
-        fab.contains(e.target);
-
-      if(!within){
-        close();
-      }
-
+  slider.addEventListener("touchend", () => {
+    if (Math.abs(moveX) > 40) {
+      moveX > 0 ? prev() : next();
     }
-  );
 
-})();
+    startAuto();
+  });
+
+  startAuto();
+}
+
+function initSearch() {
+  const input = byId("q");
+  if (!input) return;
+
+  input.addEventListener("input", event => {
+    applyFilter(event.target.value);
+  });
+}
+
+function initQuickMenu() {
+  const fab = byId("mcFab");
+  const sheet = byId("mcSheet");
+  const closeBtn = byId("mcClose");
+
+  if (!fab || !sheet || !closeBtn) return;
+
+  const open = () => {
+    sheet.classList.add("show");
+    fab.setAttribute("aria-expanded", "true");
+    sheet.setAttribute("aria-hidden", "false");
+  };
+
+  const close = () => {
+    sheet.classList.remove("show");
+    fab.setAttribute("aria-expanded", "false");
+    sheet.setAttribute("aria-hidden", "true");
+  };
+
+  const toggle = () => {
+    sheet.classList.contains("show") ? close() : open();
+  };
+
+  fab.addEventListener("click", toggle);
+  closeBtn.addEventListener("click", close);
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") close();
+  });
+
+  document.addEventListener("click", event => {
+    if (!sheet.classList.contains("show")) return;
+
+    const clickInside = sheet.contains(event.target) || fab.contains(event.target);
+
+    if (!clickInside) close();
+  });
+}
+
+function initYear() {
+  const year = byId("y");
+  if (year) year.textContent = new Date().getFullYear();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initYear();
+  initLogoReload();
+  initSlider();
+  initSearch();
+  initQuickMenu();
+  loadFixtures(new Date());
+});
